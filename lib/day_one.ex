@@ -12,6 +12,8 @@ defmodule Aoc.DayOne do
       integers()
       |> Stream.cycle
       |> Stream.scan(& &1 + &2)
+      # This is amazingly inneficient since it keeps a duplicate of all previous
+      # maps...but whatevs
       |> Stream.scan({nil, false, MapSet.new()}, fn(val, {_prev, result, map}) ->
         {val, MapSet.member?(map, val), MapSet.put(map, val)}
       end)
