@@ -66,14 +66,13 @@ defmodule Aoc.DayTwo do
     {id1, id2} = Enum.find_value word_list, fn word ->
       perms = permutations(word)
       Enum.find_value perms, fn p ->
-        if Trie.member?(trie, p) do
-          {word, p}
-        else
-          false
-        end
+        if Trie.member?(trie, p), do: {word, p}
       end
     end
 
+    # Since we know that these ids are only different in one char we can zip
+    # the two words together and filter out the char that doesn't match.
+    # Once thats done we can join the chars back together to get the answer.
     Enum.zip(String.graphemes(id1), String.graphemes(id2))
     |> Enum.filter(fn {a, b} -> a == b end)
     |> Enum.map(fn {_, a} -> a end)
@@ -83,11 +82,15 @@ defmodule Aoc.DayTwo do
   def permutations(word) do
     l = String.graphemes(word)
 
+    # Creates a set of splits to make it easy to generate permutated strings
     splits = for i <- 0..Enum.count(l)-1 do
       {Enum.take(l, i), Enum.at(l, i), Enum.drop(l, i+1)}
     end
 
-    for {l, c, r} <- splits, replacement <- Enum.reject(@letters, & &1 == c) do
+    # Using our splits and every letter except the letter we're replacing, 
+    # create a new word.
+    for {l, c, r} <- splits,
+        replacement <- Enum.reject(@letters, & &1 == c) do
       Enum.join(l ++ [replacement] ++ r)
     end
   end
