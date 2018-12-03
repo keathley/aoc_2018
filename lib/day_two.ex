@@ -58,43 +58,57 @@ defmodule Aoc.DayTwo do
   end
 
   def find_it_fast(word_list) do
+    word_list =
+      word_list
+      |> Stream.map(&String.graphemes/1)
+
     trie =
       word_list
       |> Enum.reduce(Trie.new(), fn word, trie -> Trie.insert(trie, word) end)
 
+    pid = self()
 
-    {id1, id2} = Enum.find_value word_list, fn word ->
-      perms = permutations(word)
-      Enum.find_value perms, fn p ->
-        if Trie.member?(trie, p), do: {word, p}
-      end
+    # For each word in the list spawn a process and do a search. We'll block
+    # until a process responds.
+    Enum.each word_list, fn word ->
+      spawn(fn ->
+        Enum.each permutations(word), fn p ->
+          if Trie.member?(trie, p) do
+            send(pid, {:found, {word, p}})
+          end
+        end
+      end)
     end
+
+    {id1, id2} =
+      receive do
+        {:found, answer} -> answer
+      end
 
     # Since we know that these ids are only different in one char we can zip
     # the two words together and filter out the char that doesn't match.
     # Once thats done we can join the chars back together to get the answer.
-    Enum.zip(String.graphemes(id1), String.graphemes(id2))
+    Enum.zip(id1, id2)
     |> Enum.filter(fn {a, b} -> a == b end)
     |> Enum.map(fn {_, a} -> a end)
     |> Enum.join("")
   end
 
   def permutations(word) do
-    l = String.graphemes(word)
-
     # Creates a set of splits to make it easy to generate permutated strings
-    splits = for i <- 0..Enum.count(l)-1 do
-      {Enum.take(l, i), Enum.at(l, i), Enum.drop(l, i+1)}
+    # We want to create a left and right side with a single character in the
+    # middle
+    splits = for i <- 0..Enum.count(word)-1 do
+      {Enum.take(word, i), Enum.at(word, i), Enum.drop(word, i+1)}
     end
 
-    # Using our splits and every letter except the letter we're replacing, 
+    # Using our splits and every letter except the letter we're replacing,
     # create a new word.
     for {l, c, r} <- splits,
-        replacement <- Enum.reject(@letters, & &1 == c) do
-      Enum.join(l ++ [replacement] ++ r)
+        replacement <- List.delete(@letters, c) do
+      l ++ [replacement] ++ r
     end
   end
-
 
   defp words do
     File.stream!("priv/day_two_input.txt")
@@ -121,12 +135,12 @@ end
 defmodule Aoc.DayTwo.Trie do
   def new, do: %{end: false}
 
-  def insert(trie, word) when is_binary(word) do
-    do_insert(trie, String.graphemes(word))
+  def insert(trie, word) do
+    do_insert(trie, word)
   end
 
-  def member?(trie, word) when is_binary(word) do
-    lookup(trie, String.graphemes(word))
+  def member?(trie, word) do
+    lookup(trie, word)
   end
 
   defp do_insert(trie, []), do: %{trie | end: true}
@@ -140,7 +154,7 @@ defmodule Aoc.DayTwo.Trie do
     end
   end
 
-  defp lookup(trie, []), do: true
+  defp lookup(%{end: end?}, []), do: end?
   defp lookup(trie, [char | rest]) do
     case Map.get(trie, char) do
       nil ->
