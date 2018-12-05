@@ -1,6 +1,19 @@
 defmodule Aoc.DayThree do
   alias __MODULE__.Parser
 
+  @doc """
+  ## Examples
+
+  iex> foo([
+    {:foo, 1},
+    {:bar, 2},
+  ])
+  :ok
+  """
+  def foo(dummy_list) do
+    :ok
+  end
+
   def part_one() do
     claims =
       File.stream!("priv/day_three_input.txt")
@@ -38,8 +51,7 @@ defmodule Aoc.DayThree do
 
   defp overlapping_plots(coordinates) do
     {_, overlapping} =
-      coordinates
-      |> Enum.reduce({MapSet.new(), MapSet.new()}, fn coord, {seen, overlapping} ->
+      Enum.reduce(coordinates, {MapSet.new(), MapSet.new()}, fn coord, {seen, overlapping} ->
         new_overlapping =
           if MapSet.member?(seen, coord) do
             MapSet.put(overlapping, coord)
